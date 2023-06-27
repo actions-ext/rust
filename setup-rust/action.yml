@@ -1,0 +1,50 @@
+name: Setup Rust
+description: 'Ensure Rust compiler and utilities are available, and setup caching'
+
+inputs:
+  kind:
+    type: choice
+    description: "Whether to install just a default target, or all targets (e.g. for during deployments / wheel building)"
+    options: 
+        - minimal
+        - full
+        - full-wasm
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: nightly
+        components: clippy
+        override: true
+
+    # - name: Setup Rust cache
+    #   uses: Swatinem/rust-cache@v2
+    #   with:
+    #     key: ${{ runner.os }}
+
+    - name: Setup cargo cache
+      uses: actions/cache@v3
+      with:
+          path: |
+              ~/.cargo/bin/
+              ~/.cargo/registry/index/
+              ~/.cargo/registry/cache/
+              ~/.cargo/git/db/
+              **/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    - run: rustup target add aarch64-apple-darwin
+      if: ${{ inputs.kind == 'full' && runner.os == 'macOS' }}
+
+    - run: rustup toolchain install stable-i686-pc-windows-msvc
+      if: ${{ inputs.kind == 'full' && runner.os == 'Windows' }}
+
+    - run: rustup target add i686-pc-windows-msvc
+      if: ${{ inputs.kind == 'full' && runner.os == 'Windows' }}
+
+    - run: rustup target add wasm32-unknown-unknown
+      if: ${{ inputs.kind == 'full' && runner.os == 'Windows' }}
