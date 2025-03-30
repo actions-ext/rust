@@ -7,3 +7,4 @@ An action to setup a rust compiler and enable caching.
 - name: Setup Rust
   uses: actions-ext/rust/setup-rust@v1
 ```
+
