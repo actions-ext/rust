@@ -5,10 +5,10 @@ inputs:
   kind:
     type: choice
     description: "Whether to install just a default target, or all targets (e.g. for during deployments / wheel building)"
+    default: "full"
     options:
-        - minimal
         - full
-        - full-wasm
+        - wasm
 
 runs:
   using: 'composite'
@@ -43,22 +43,24 @@ runs:
               **/target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-    - run: rustup target add aarch64-apple-darwin
+    - run: |
+        rustup target add aarch64-unknown-linux-gnu
+        rustup target add x86_64-unknown-linux-gnu
+      shell: bash
+      if: ${{ inputs.kind == 'full' && runner.os == 'Linux' }}
+
+    - run: |
+        rustup target add aarch64-apple-darwin
+        rustup target add x86_64-apple-darwin
       shell: bash
       if: ${{ inputs.kind == 'full' && runner.os == 'macOS' }}
 
-    - run: rustup target add x86_64-apple-darwin
-      shell: bash
-      if: ${{ inputs.kind == 'full' && runner.os == 'macOS' }}
-
-    - run: rustup toolchain install stable-i686-pc-windows-msvc
-      shell: bash
-      if: ${{ inputs.kind == 'full' && runner.os == 'Windows' }}
-
-    - run: rustup target add i686-pc-windows-msvc
+    - run: |
+        rustup target add x86_64-pc-windows-msvc
+        rustup target add aarch64-pc-windows-msvc
       shell: bash
       if: ${{ inputs.kind == 'full' && runner.os == 'Windows' }}
 
     - run: rustup target add wasm32-unknown-unknown
       shell: bash
-      if: ${{ inputs.kind == 'full' && runner.os == 'Windows' }}
+      if: ${{ inputs.kind == 'wasm' }}
