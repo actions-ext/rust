@@ -47,6 +47,10 @@ runs:
       shell: bash
       if: ${{ inputs.kind == 'full' && runner.os == 'macOS' }}
 
+    - run: rustup target add x86_64-apple-darwin
+      shell: bash
+      if: ${{ inputs.kind == 'full' && runner.os == 'macOS' }}
+
     - run: rustup toolchain install stable-i686-pc-windows-msvc
       shell: bash
       if: ${{ inputs.kind == 'full' && runner.os == 'Windows' }}
