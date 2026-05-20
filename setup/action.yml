@@ -14,7 +14,7 @@ runs:
   using: 'composite'
   steps:
     - name: Set up Rust
-      uses: dtolnay/rust-toolchain@stable
+      uses: dtolnay/rust-toolchain@2ca385c197f3201aa80dc04f5be82c4bf9937ec2 # v1.71
       with:
         toolchain: stable
         components: clippy, rustfmt
@@ -28,7 +28,7 @@ runs:
     #     override: true
 
     - name: Setup Rust cache
-      uses: Swatinem/rust-cache@v2
+      uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
       with:
         key: ${{ runner.os }}
         cache-targets: true
