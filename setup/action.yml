@@ -14,7 +14,7 @@ runs:
   using: 'composite'
   steps:
     - name: Set up Rust
-      uses: dtolnay/rust-toolchain@2ca385c197f3201aa80dc04f5be82c4bf9937ec2 # v1.71
+      uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # latest
       with:
         toolchain: stable
         components: clippy, rustfmt
