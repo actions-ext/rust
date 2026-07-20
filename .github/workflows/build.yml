@@ -31,7 +31,7 @@ jobs:
         printf 'fn main() {\n    println!("Hello, world!");\n}\n' > src/main.rs
 
     - name: Setup Rust
-      uses: ./rust/setup
+      uses: ./setup
 
     - name: Install
       run: cargo build
