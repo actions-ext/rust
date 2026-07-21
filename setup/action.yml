@@ -1,14 +1,22 @@
 name: Setup Rust
-description: 'Ensure Rust compiler and utilities are available, and setup caching'
+description: 'Configure a Rust toolchain, targets, Cargo tools, and caching'
 
 inputs:
-  kind:
-    type: choice
-    description: "Whether to install just a default target, or all targets (e.g. for during deployments / wheel building)"
-    default: "full"
-    options:
-        - full
-        - wasm
+  toolchain:
+    description: 'Rust toolchain to install'
+    default: 'stable'
+  components:
+    description: 'Comma-separated rustup components to install'
+    default: 'clippy,rustfmt'
+  targets:
+    description: 'Comma-separated Rust targets to install'
+    default: ''
+  tools:
+    description: 'Newline-separated Cargo tools in crate@version format'
+    default: ''
+  cache_key:
+    description: 'Additional Rust cache key'
+    default: 'rust'
 
 runs:
   using: 'composite'
@@ -16,8 +24,9 @@ runs:
     - name: Set up Rust
       uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # latest
       with:
-        toolchain: stable
-        components: clippy, rustfmt
+        toolchain: ${{ inputs.toolchain }}
+        components: ${{ inputs.components }}
+        targets: ${{ inputs.targets }}
 
     - name: Configure Cargo cache paths
       run: |
@@ -30,7 +39,7 @@ runs:
     - name: Setup Rust cache
       uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
       with:
-        key: ${{ runner.os }}-${{ inputs.kind }}
+        key: ${{ inputs.cache_key }}-${{ inputs.toolchain }}-${{ inputs.targets }}
         cache-targets: true
         cache-all-crates: true
         cache-bin: true
@@ -39,24 +48,28 @@ runs:
           .cargo
           .rustup
 
-    - run: |
-        rustup target add aarch64-unknown-linux-gnu
-        rustup target add x86_64-unknown-linux-gnu
+    - name: Install Cargo tools
+      env:
+        CARGO_TOOLS: ${{ inputs.tools }}
       shell: bash
-      if: ${{ inputs.kind == 'full' && runner.os == 'Linux' }}
-
-    - run: |
-        rustup target add aarch64-apple-darwin
-        rustup target add x86_64-apple-darwin
-      shell: bash
-      if: ${{ inputs.kind == 'full' && runner.os == 'macOS' }}
-
-    - run: |
-        rustup target add x86_64-pc-windows-msvc
-        rustup target add aarch64-pc-windows-msvc
-      shell: bash
-      if: ${{ inputs.kind == 'full' && runner.os == 'Windows' }}
-
-    - run: rustup target add wasm32-unknown-unknown
-      shell: bash
-      if: ${{ inputs.kind == 'wasm' }}
+      run: |
+        while IFS= read -r specification; do
+          specification="${specification%$'\r'}"
+          [ -z "$specification" ] && continue
+          case "$specification" in
+            *@*)
+              crate="${specification%@*}"
+              version="${specification##*@}"
+              ;;
+            *)
+              echo "Cargo tool must use crate@version format: $specification" >&2
+              exit 1
+              ;;
+          esac
+          if [ -z "$crate" ] || [ -z "$version" ]; then
+            echo "Cargo tool must use crate@version format: $specification" >&2
+            exit 1
+          fi
+          cargo install --locked "$crate" --version "=$version"
+        done <<< "$CARGO_TOOLS"
+      if: ${{ inputs.tools != '' }}
