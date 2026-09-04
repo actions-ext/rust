@@ -12,11 +12,47 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  checks: write
-  pull-requests: write
+  contents: read
 
 jobs:
   build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            targets: wasm32-unknown-unknown
+          - os: macos-latest
+            targets: aarch64-apple-darwin,wasm32-unknown-unknown
+          - os: windows-latest
+            targets: wasm32-unknown-unknown
+
+    steps:
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      with:
+        persist-credentials: false
+
+    - uses: ./setup
+      with:
+        targets: ${{ matrix.targets }}
+
+    - name: Verify toolchain
+      run: |
+        rustup component list --installed | grep '^clippy-'
+        rustup component list --installed | grep '^rustfmt-'
+        rustup target list --installed | grep '^wasm32-unknown-unknown$'
+        cargo build --manifest-path tests/Cargo.toml
+        cargo build --manifest-path tests/Cargo.toml --target wasm32-unknown-unknown
+      shell: bash
+
+    - name: Verify macOS target
+      run: rustup target list --installed | grep '^aarch64-apple-darwin$'
+      shell: bash
+      if: runner.os == 'macOS'
+
+  tools:
     runs-on: ubuntu-latest
 
     steps:
@@ -24,14 +60,16 @@ jobs:
       with:
         persist-credentials: false
 
-    - name: Prework
+    - uses: ./setup
+      with:
+        tools: |
+          cargo-nextest@0.9.140
+          cargo-llvm-cov@0.8.7
+          wasm-bindgen-cli@0.2.126
+
+    - name: Verify Cargo tools
       run: |
-        printf '[package]\nname = "rust"\nversion = "0.1.0"\nedition = "2021"\n[dependencies]\n' > Cargo.toml
-        mkdir -p src
-        printf 'fn main() {\n    println!("Hello, world!");\n}\n' > src/main.rs
-
-    - name: Setup Rust
-      uses: ./setup
-
-    - name: Install
-      run: cargo build
+        cargo nextest --version
+        cargo llvm-cov --version
+        wasm-bindgen --version
+      shell: bash
