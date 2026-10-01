@@ -6,4 +6,9 @@ updates:
       - "/setup"
     schedule:
       interval: "monthly"
-    labels: []
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    labels:
+      - "part: github_actions"
