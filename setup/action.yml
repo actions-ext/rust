@@ -1,5 +1,5 @@
 name: Setup Rust
-description: 'Configure a Rust toolchain, targets, Cargo tools, and caching'
+description: 'Configure a Rust toolchain, targets, components, and caching'
 
 inputs:
   toolchain:
@@ -11,18 +11,12 @@ inputs:
   targets:
     description: 'Comma-separated Rust targets to install'
     default: ''
-  tools:
-    description: 'Newline-separated Cargo tools in crate@version format'
-    default: ''
-  cache_key:
-    description: 'Additional Rust cache key'
-    default: 'rust'
 
 runs:
   using: 'composite'
   steps:
     - name: Set up Rust
-      uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # latest
+      uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # latest
       with:
         toolchain: ${{ inputs.toolchain }}
         components: ${{ inputs.components }}
@@ -37,9 +31,9 @@ runs:
       shell: bash
 
     - name: Setup Rust cache
-      uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+      uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       with:
-        key: ${{ inputs.cache_key }}-${{ inputs.toolchain }}-${{ inputs.targets }}
+        key: ${{ inputs.toolchain }}-${{ inputs.targets }}
         cache-targets: true
         cache-all-crates: true
         cache-bin: true
@@ -47,29 +41,3 @@ runs:
         cache-directories: |
           .cargo
           .rustup
-
-    - name: Install Cargo tools
-      env:
-        CARGO_TOOLS: ${{ inputs.tools }}
-      shell: bash
-      run: |
-        while IFS= read -r specification; do
-          specification="${specification%$'\r'}"
-          [ -z "$specification" ] && continue
-          case "$specification" in
-            *@*)
-              crate="${specification%@*}"
-              version="${specification##*@}"
-              ;;
-            *)
-              echo "Cargo tool must use crate@version format: $specification" >&2
-              exit 1
-              ;;
-          esac
-          if [ -z "$crate" ] || [ -z "$version" ]; then
-            echo "Cargo tool must use crate@version format: $specification" >&2
-            exit 1
-          fi
-          cargo install --locked "$crate" --version "=$version"
-        done <<< "$CARGO_TOOLS"
-      if: ${{ inputs.tools != '' }}
