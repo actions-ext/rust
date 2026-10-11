@@ -1,14 +1,16 @@
 name: Setup Rust
-description: 'Ensure Rust compiler and utilities are available, and setup caching'
+description: 'Configure a Rust toolchain, targets, components, and caching'
 
 inputs:
-  kind:
-    type: choice
-    description: "Whether to install just a default target, or all targets (e.g. for during deployments / wheel building)"
-    default: "full"
-    options:
-        - full
-        - wasm
+  toolchain:
+    description: 'Rust toolchain to install'
+    default: 'stable'
+  components:
+    description: 'Comma-separated rustup components to install'
+    default: 'clippy,rustfmt'
+  targets:
+    description: 'Comma-separated Rust targets to install'
+    default: ''
 
 runs:
   using: 'composite'
@@ -16,8 +18,9 @@ runs:
     - name: Set up Rust
       uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # latest
       with:
-        toolchain: stable
-        components: clippy, rustfmt
+        toolchain: ${{ inputs.toolchain }}
+        components: ${{ inputs.components }}
+        targets: ${{ inputs.targets }}
 
     - name: Configure Cargo cache paths
       run: |
@@ -30,7 +33,7 @@ runs:
     - name: Setup Rust cache
       uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       with:
-        key: ${{ runner.os }}-${{ inputs.kind }}
+        key: ${{ inputs.toolchain }}-${{ inputs.targets }}
         cache-targets: true
         cache-all-crates: true
         cache-bin: true
@@ -38,25 +41,3 @@ runs:
         cache-directories: |
           .cargo
           .rustup
-
-    - run: |
-        rustup target add aarch64-unknown-linux-gnu
-        rustup target add x86_64-unknown-linux-gnu
-      shell: bash
-      if: ${{ inputs.kind == 'full' && runner.os == 'Linux' }}
-
-    - run: |
-        rustup target add aarch64-apple-darwin
-        rustup target add x86_64-apple-darwin
-      shell: bash
-      if: ${{ inputs.kind == 'full' && runner.os == 'macOS' }}
-
-    - run: |
-        rustup target add x86_64-pc-windows-msvc
-        rustup target add aarch64-pc-windows-msvc
-      shell: bash
-      if: ${{ inputs.kind == 'full' && runner.os == 'Windows' }}
-
-    - run: rustup target add wasm32-unknown-unknown
-      shell: bash
-      if: ${{ inputs.kind == 'wasm' }}
